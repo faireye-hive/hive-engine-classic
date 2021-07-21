@@ -15,7 +15,7 @@ Config = {
     NATIVE_TOKEN: 'BEE',
     STEEMP_ACCOUNT: 'honey-swap',
     /*DSWAP_API_URL: 'https://dswap.azurewebsites.net/api',*/
-    DSWAP_API_URL: 'https://dswap-api.dswap.trade/api/',
+    DSWAP_API_URL: 'https://dswap-api.dswap.trade/api',
     DSWAP_ACCOUNT_HE: 'dswap',
     DSWAP_HE_SOURCE_ID: '60f0880d47262b9a30fef8bf',
     DSWAP_FRONTEND_URL: 'https://qa.dswap.trade',
