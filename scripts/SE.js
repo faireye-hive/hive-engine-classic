@@ -2505,6 +2505,7 @@ SE = {
         let symbol = data.TokenInput;
         let to = Config.DSWAP_ACCOUNT_HE;
         let quantity = data.TokenInputAmount;
+        quantity = parseFloat(quantity);
 
         if (!username) {
             window.location.reload();

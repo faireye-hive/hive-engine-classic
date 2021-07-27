@@ -156,13 +156,13 @@
             .extend({ throttle: 400 });
 
         self.fromToken.subscribe(function (val) {
-            self.fromAmount(0);
-            self.toAmount(0);
+            self.fromAmount("");
+            self.toAmount("");
         })
 
         self.toToken.subscribe(function (val) {
-            self.fromAmount(0);
-            self.toAmount(0);
+            self.fromAmount("");
+            self.toAmount("");
         })
 
         self.fromAmountThrottled.subscribe(function (val) {
