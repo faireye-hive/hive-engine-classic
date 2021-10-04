@@ -98,7 +98,7 @@ SE = {
                 SE.ShowRewards(parts.a ? parts.a : SE.User.name);
                 break;
             case 'swaps':
-                SE.ShowRewards(parts.a ? parts.a : SE.User.name);
+                SE.ShowSwaps(parts.a ? parts.a : SE.User.name);
                 break;
             case 'open_orders':
                 SE.ShowOpenOrders(parts.a ? parts.a : SE.User.name);
@@ -605,8 +605,7 @@ SE = {
             account = SE.User.name;
         }
 
-        SE.DSwapGetSwapRequests(swapRequests => {
-            console.log(swapRequests);
+        SE.DSwapGetSwapRequests(swapRequests => {            
             SE.ShowHomeView('swaps', { swapRequests: swapRequests, account: account }, { a: account });
         });
     },
@@ -2591,4 +2590,19 @@ SE = {
             }
         });
     },
+    DSwapGetSwapRequestById: function (id, callback) {
+        $.ajax({
+            url: Config.DSWAP_API_URL + '/SwapRequest/' + id,
+            type: 'GET',
+            contentType: "application/json",
+            dataType: "json",
+            success: result => {
+                if (callback)
+                    callback(result);
+            },
+            error: (xhr, status, errorThrown) => {
+                callback(xhr);
+            }
+        });
+    }
 }

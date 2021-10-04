@@ -49,17 +49,24 @@
             break;
             }
             %>
-            <tr>
+            <tr id="tr<%= req.Id %>">
                 <td><%= req.CreatedAt %></td>
                 <td><%= req.TokenInput %></td>
                 <td><%= req.TokenInputAmount %></td>
                 <td><%= req.TokenOutput %></td>
                 <td><%= req.TokenOutputAmount %></td>
-                <td><%= req.TokenOutputAmountActual %></td>
+                <td class="tokenOutputActual"><%= req.TokenOutputAmountActual %></td>
                 <td class="text-center">
-                    <div class="alert alert-<%= swapStatusDiv %>">
+                    <div class="alert alert-<%= swapStatusDiv %> swapStatus">
                         <%= swapStatus %>
                     </div>
+                    <%
+                    if (req.SwapStatusId != 3 && req.SwapStatusId != 4) {
+                    %>
+                    <button class="btn btn-primary btn-sm refresh btnRefresh" txid="<%= req.Id %>" title="Refresh">Refresh</button>
+                    <%
+                    }
+                    %>
                 </td>
             </tr>
             <% } %>
@@ -71,5 +78,52 @@
 </div>
 
 <script>
+    $(document).ready(function () {
+        $('.btnRefresh').on('click', btnRefreshClick);
+    });
 
+    function btnRefreshClick() {
+        let txId = $(this).attr('txid');
+        SE.ShowLoading();
+        SE.DSwapGetSwapRequestById(txId, result => {            
+            if (result && result.Id) {
+
+                let swapStatus = 0;
+                let swapStatusDiv = "alert alert-";
+
+                switch (result.SwapStatusId) {
+                    case 1:
+                        swapStatus = "Init";
+                        swapStatusDiv += "default";
+                        break;
+                    case 2:
+                        swapStatus = "In progress";
+                        swapStatusDiv += "warning";
+                        break;
+                    case 3:
+                        swapStatus = "Success";
+                        swapStatusDiv += "success";
+                        break;
+                    case 4:
+                        swapStatus = "Failed";
+                        swapStatusDiv += "danger";
+                        break;
+                }
+
+                $("#tr" + txId + " .swapStatus").removeClass("alert-default");
+                $("#tr" + txId + " .swapStatus").removeClass("alert-warning");
+                $("#tr" + txId + " .swapStatus").addClass(swapStatusDiv);
+                $("#tr" + txId + " .swapStatus").text(swapStatus);
+                $("#tr" + txId + " .tokenOutputActual").text(result.TokenOutputAmountActual);
+
+                if (swapStatus == "Success" || swapStatus == "Failed") {
+                    $("#tr" + txId + " .btnRefresh").hide();
+                }
+
+                SE.HideLoading();
+            } else {
+                SE.HideLoading();
+            }
+        });
+    }
 </script>
