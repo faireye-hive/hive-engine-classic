@@ -2530,7 +2530,7 @@ SE = {
                     SE.ShowToast(true, 'Please wait while your transaction is verified. Do not close your window.');
 
                     SE.CheckTransaction(response.result.id, 3, tx => {
-                        if (tx.success) {
+                        //if (tx.success) {
                             SE.ShowToast(true, quantity + ' ' + symbol + ' Tokens sent to @' + to + '. Please wait while we queue your Swap request.');
 
                             data.ChainTransactionId = response.result.id;
@@ -2559,13 +2559,14 @@ SE = {
                                 }
                             });
 
-                        }
-                        else {
-                            SE.ShowToast(false, 'An error occurred submitting the transfer: ' + tx.error)
+                        
+                        //}
+                        //else {
+                        //    SE.ShowToast(false, 'An error occurred submitting the transfer: ' + tx.error)
 
-                            SE.HideLoading();
-                            SE.HideDialog();
-                        }
+                        //    SE.HideLoading();
+                        //    SE.HideDialog();
+                        //}
                     });
                 } else
                     SE.HideLoading();
