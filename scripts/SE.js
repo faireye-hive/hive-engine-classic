@@ -2539,8 +2539,10 @@ SE = {
                                 url: Config.DSWAP_API_URL + '/SwapRequest',
                                 type: 'POST',
                                 data: JSON.stringify(data),
-                                contentType: "application/json",
+                                contentType: "application/json; charset=utf-8",
                                 dataType: "json",
+                                cache: false,
+                                async: false,
                                 success: result => {
                                     SE.ShowToast(true, 'Your swap request is queued successfully.');
 
@@ -2551,7 +2553,7 @@ SE = {
                                     SE.ShowSwaps(SE.User.name);
                                 },
                                 error: (xhr, status, errorThrown) => {
-                                    SE.ShowToast(false, 'An error occurred while queueing your swap request. 1:' + xhr.statusText + ' 2:' + status + ' 3: ' + errorThrown)
+                                    SE.ShowToast(false, 'An error occurred while queueing your swap request.');
                                     console.log(xhr);
 
                                     SE.HideLoading();
