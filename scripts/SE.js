@@ -2537,6 +2537,7 @@ SE = {
 
                             $.ajax({
                                 url: Config.DSWAP_API_URL + '/SwapRequest',
+                                crossDomain: true,
                                 type: 'POST',
                                 data: JSON.stringify(data),
                                 contentType: "application/json; charset=utf-8",
