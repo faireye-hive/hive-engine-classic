@@ -2551,7 +2551,7 @@ SE = {
                                     SE.ShowSwaps(SE.User.name);
                                 },
                                 error: (xhr, status, errorThrown) => {
-                                    SE.ShowToast(false, 'An error occurred while queueing your swap request.')
+                                    SE.ShowToast(false, 'An error occurred while queueing your swap request.' + errorThrown)
                                     console.log(xhr);
 
                                     SE.HideLoading();
