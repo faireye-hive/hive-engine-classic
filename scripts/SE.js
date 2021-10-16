@@ -2527,9 +2527,14 @@ SE = {
         if (useKeychain()) {
             hive_keychain.requestCustomJson(username, Config.CHAIN_ID, 'Active', JSON.stringify(transaction_data), 'Token Transfer: ' + symbol, function (response) {
                 if (response.success && response.result) {
-                    SE.ShowToast(true, 'Please wait while your transaction is verified. Do not close your window. Details: ' + JSON.stringify(response.result, null, 2));
+                    SE.ShowToast(true, 'Please wait while your transaction is verified. Do not close your window.');
 
-                    data.ChainTransactionId = response.result.id;
+                    if (response.result.id) {
+                        data.ChainTransactionId = response.result.id;
+                    } else if (response.result.tx_id) {
+                        // response in mobile contains tx_id instead of id
+                        data.ChainTransactionId = response.result.tx_id;
+                    }
 
                     SE.CheckTransaction(response.result.id, 3, tx => {
                         //if (tx.success) {
