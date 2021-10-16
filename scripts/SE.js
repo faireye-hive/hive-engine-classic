@@ -2528,12 +2528,11 @@ SE = {
             hive_keychain.requestCustomJson(username, Config.CHAIN_ID, 'Active', JSON.stringify(transaction_data), 'Token Transfer: ' + symbol, function (response) {
                 if (response.success && response.result) {
                     SE.ShowToast(true, 'Please wait while your transaction is verified. Do not close your window.');
+                    data.ChainTransactionId = response.result.id;
 
                     SE.CheckTransaction(response.result.id, 3, tx => {
                         //if (tx.success) {
-                            SE.ShowToast(true, quantity + ' ' + symbol + ' Tokens sent to @' + to + '. Please wait while we queue your Swap request.');
-
-                            data.ChainTransactionId = response.result.id;
+                            SE.ShowToast(true, quantity + ' ' + symbol + ' Tokens sent to @' + to + '. Please wait while we queue your Swap request.');                            
 
                             $.ajax({
                                 url: Config.DSWAP_API_URL + '/SwapRequest',
