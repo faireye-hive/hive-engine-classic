@@ -2545,7 +2545,7 @@ SE = {
                                 dataType: "json",
                                 cache: false,
                                 async: false,
-                                success: result => {
+                                success: function (result) {
                                     SE.ShowToast(true, 'Your swap request is queued successfully.');
 
                                     console.log(result);
@@ -2554,8 +2554,8 @@ SE = {
 
                                     SE.ShowSwaps(SE.User.name);
                                 },
-                                error: (xhr, status, errorThrown) => {
-                                    SE.ShowToast(false, 'An error occurred while queueing your swap request.');
+                                error: function (err) {
+                                    SE.ShowToast(false, 'An error occurred while queueing your swap request. Details: ' + JSON.stringify(err, null, 2));
                                     console.log(xhr);
 
                                     SE.HideLoading();
