@@ -2533,34 +2533,56 @@ SE = {
                         //if (tx.success) {
                             SE.ShowToast(true, quantity + ' ' + symbol + ' Tokens sent to @' + to + '. Please wait while we queue your Swap request.');
 
-                            data.ChainTransactionId = response.result.id;
+                        data.ChainTransactionId = response.result.id;
 
-                            $.ajax({
-                                url: Config.DSWAP_API_URL + '/SwapRequest',
-                                crossDomain: true,
-                                type: 'POST',
-                                data: JSON.stringify(data),
-                                contentType: "application/json; charset=utf-8",
-                                dataType: "json",
-                                cache: false,
-                                async: false,
-                                success: result => {
-                                    SE.ShowToast(true, 'Your swap request is queued successfully.');
+                        $.post({
+                            url: Config.DSWAP_API_URL + '/SwapRequest',
+                            data: JSON.stringify(data),
+                            contentType: "application/json; charset=utf-8",
+                        })
+                        .done(function (result) {
+                            SE.ShowToast(true, 'Your swap request is queued successfully.');
 
-                                    console.log(result);
-                                    SE.HideLoading();
-                                    SE.HideDialog();
+                            console.log(result);
+                            SE.HideLoading();
+                            SE.HideDialog();
 
-                                    SE.ShowSwaps(SE.User.name);
-                                },
-                                error: (xhr, status, errorThrown) => {
-                                    SE.ShowToast(false, 'An error occurred while queueing your swap request.');
-                                    console.log(xhr);
+                            SE.ShowSwaps(SE.User.name);
+                        })
+                        .fail(function (xhr, status, error) {
+                            SE.ShowToast(false, 'An error occurred while queueing your swap request.');
+                            console.log(xhr);
 
-                                    SE.HideLoading();
-                                    SE.HideDialog();
-                                }
-                            });
+                            SE.HideLoading();
+                            SE.HideDialog();
+                        });
+
+                            //$.ajax({
+                            //    url: Config.DSWAP_API_URL + '/SwapRequest',
+                            //    crossDomain: true,
+                            //    type: 'POST',
+                            //    data: JSON.stringify(data),
+                            //    contentType: "application/json; charset=utf-8",
+                            //    dataType: "json",
+                            //    cache: false,
+                            //    async: false,
+                            //    success: result => {
+                            //        SE.ShowToast(true, 'Your swap request is queued successfully.');
+
+                            //        console.log(result);
+                            //        SE.HideLoading();
+                            //        SE.HideDialog();
+
+                            //        SE.ShowSwaps(SE.User.name);
+                            //    },
+                            //    error: (xhr, status, errorThrown) => {
+                            //        SE.ShowToast(false, 'An error occurred while queueing your swap request.');
+                            //        console.log(xhr);
+
+                            //        SE.HideLoading();
+                            //        SE.HideDialog();
+                            //    }
+                            //});
 
                         
                         //}
