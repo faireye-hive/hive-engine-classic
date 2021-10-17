@@ -27,9 +27,11 @@
         <tbody>
             <% for (let req of data.swapRequests) { %>
             <%
-
+            
             let swapStatus = "";
             let swapStatusDiv = "";
+            let swapInfo = req.Message;
+            let swapInfoStyle = swapInfo ? "display: inline" : "display: none";
             switch (req.SwapStatusId) {
             case 1:
             swapStatus = "Init";
@@ -58,7 +60,8 @@
                 <td class="tokenOutputActual"><%= req.TokenOutputAmountActual %></td>
                 <td class="text-center">
                     <div class="alert alert-<%= swapStatusDiv %> swapStatus">
-                        <%= swapStatus %>
+                        <label style="margin:0; padding: 0;" class="swapStatusLbl"><%= swapStatus %></label>                        
+                        <i class="fas fa-info-circle swapInfo" style="<%= swapInfoStyle %>" title="<%= swapInfo %>"></i>
                     </div>
                     <%
                     if (req.SwapStatusId != 3 && req.SwapStatusId != 4) {
@@ -90,6 +93,8 @@
 
                 let swapStatus = 0;
                 let swapStatusDiv = "alert alert-";
+                let swapInfo = result.Message;
+                let swapInfoStyle = swapInfo ? "inline" : "none";
 
                 switch (result.SwapStatusId) {
                     case 1:
@@ -113,7 +118,9 @@
                 $("#tr" + txId + " .swapStatus").removeClass("alert-default");
                 $("#tr" + txId + " .swapStatus").removeClass("alert-warning");
                 $("#tr" + txId + " .swapStatus").addClass(swapStatusDiv);
-                $("#tr" + txId + " .swapStatus").text(swapStatus);
+                $("#tr" + txId + " .swapStatus .swapStatusLbl").text(swapStatus);
+                $("#tr" + txId + " .swapStatus .swapInfo").attr("title", swapInfo);
+                $("#tr" + txId + " .swapStatus .swapInfo").css("display", swapInfoStyle);
                 $("#tr" + txId + " .tokenOutputActual").text(result.TokenOutputAmountActual);
 
                 if (swapStatus == "Success" || swapStatus == "Failed") {
