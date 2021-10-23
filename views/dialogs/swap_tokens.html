@@ -134,6 +134,11 @@
         self.name = ko.observable(data.name);        
     }
 
+    function toFixed(num, fixed) {
+        var re = new RegExp('^-?\\d+(?:\.\\d{0,' + (fixed || -1) + '})?');
+        return num.toString().match(re)[0];
+    }
+
     function SwapViewModel() {
         var self = this;
 
@@ -165,8 +170,8 @@
             self.toAmount("");
         })
 
-        self.fromAmountThrottled.subscribe(function (val) {
-            if (val > 0 && self.fromToken() && self.toToken() && self.fromToken().symbol() != self.toToken().symbol()) {
+        self.fromAmountThrottled.subscribe(function (val) {            
+            if (val > 0 && self.fromToken() && self.toToken() && self.fromToken().symbol() != self.toToken().symbol()) {                
                 // only update if from amount is changed
                 if (!self.calculateSwapInputCalled()) {
                     var reqModel = {
@@ -180,6 +185,8 @@
                     SE.DSwapCalculateSwapOutput(reqModel, (err, result) => {
                         if (result) {
                             self.toAmount(result.TokenOutputAmount);
+                            // round down the token output to increase chances to get the expected amount 
+                            self.toAmount(toFixed(self.toAmount(), self.toToken().precision()));
                             self.baseTokenAmount(result.BaseTokenAmount);
                         }
 
@@ -207,6 +214,8 @@
                     SE.DSwapCalculateSwapInput(reqModel, (err, result) => {
                         if (result) {
                             self.fromAmount(result.TokenInputAmount);
+                            // round up the token input to increase chances to get the amount of token output
+                            self.fromAmount(self.fromAmount().toFixed(self.fromToken().precision()));
                             self.baseTokenAmount(result.BaseTokenAmount);
                         }
 
@@ -228,7 +237,7 @@
                 && self.toAmountThrottled() > 0
                 && self.fromToken()
                 && self.toToken()
-                && self.fromAmountThrottled() <= self.fromToken().balance()
+                && parseFloat(self.fromAmountThrottled()) <= parseFloat(self.fromToken().balance())
                 && self.fromToken().symbol() != self.toToken().symbol()) {
                 enabled = true;
             }
