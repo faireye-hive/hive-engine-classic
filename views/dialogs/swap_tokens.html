@@ -270,8 +270,11 @@
     ko.applyBindings(viewModel, $('#swapDialog')[0]);
 
     $(document).ready(function () {
-        viewModel.fromTokenList(SE.User.balances.sort(dynamicSort("symbol")).map(x => { return new TokenItem(x); }));
-        viewModel.toTokenList(SE.Tokens.sort(dynamicSort("symbol")).map(x => { return new TokenItem(x); }));
+        let fromList = SE.User.balances.sort(dynamicSort("symbol")).map(x => { return new TokenItem(x); });
+        let toList = SE.Tokens.sort(dynamicSort("symbol")).map(x => { return new TokenItem(x); });
+
+        viewModel.fromTokenList(fromList);
+        viewModel.toTokenList(toList);
 
         // update balances in toTokenList
         for (let i = 0; i < viewModel.toTokenList().length; i++) {
@@ -296,6 +299,16 @@
                 viewModel.fromTokenList()[i].precision(match.precision());
             }
         }
+
+        // remove 0 precision tokens 
+        viewModel.fromTokenList.remove(function (t) {
+            return t.precision() === 0;
+        });
+
+        // remove 0 precision tokens 
+        viewModel.toTokenList.remove(function (t) {
+            return t.precision() === 0;
+        });
     });
 
 </script>
