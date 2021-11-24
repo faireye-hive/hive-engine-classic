@@ -11,13 +11,13 @@
                 <span aria-hidden="true">X</span>
             </button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" data-bind="visible: dswapPaused()">
             <div class="alert alert-warning">
                 Server maintenance. Please try again later.
             </div>
         </div>
 
-        <div class="modal-body" style="display: none;">            
+        <div class="modal-body"  data-bind="visible: !dswapPaused()">            
             <div class="note" style="text-align: left; margin-bottom: 20px;">
                 Choose which token you would like to swap below. For more information about DSwap <a href="<%= Config.DSWAP_FRONTEND_URL + '/faq' %>" target="_blank">see the FAQ</a>.
             </div>
@@ -158,6 +158,7 @@
         self.calculateSwapInputCalled = ko.observable(false);
         self.maxSlippageFromToken = ko.observable(5);
         self.maxSlippageToToken = ko.observable(5);
+        self.dswapPaused = ko.observable(Config.DSWAP_PAUSED);
 
         self.fromAmountThrottled = ko.computed(self.fromAmount)
             .extend({ throttle: 400 });
