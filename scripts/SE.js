@@ -510,73 +510,75 @@ SE = {
 
     LoadTokens: function(callback) {
         ssc.find('tokens', 'tokens', {}, 1000, 0, [], (err, result) => {
-            SE.Tokens = result.filter(t => !Config.DISABLED_TOKENS.includes(t.symbol));
+            if (result) {
+                SE.Tokens = result.filter(t => !Config.DISABLED_TOKENS.includes(t.symbol));
 
-            ssc.find('market', 'metrics', {}, 1000, 0, '', false).then(async(metrics) => {
-                for (var i = 0; i < SE.Tokens.length; i++) {
-                    var token = SE.Tokens[i];
+                ssc.find('market', 'metrics', {}, 1000, 0, '', false).then(async (metrics) => {
+                    for (var i = 0; i < SE.Tokens.length; i++) {
+                        var token = SE.Tokens[i];
 
-                    token.highestBid = 0;
-                    token.lastPrice = 0;
-                    token.lowestAsk = 0;
-                    token.marketCap = 0;
-                    token.volume = 0;
-                    token.priceChangePercent = 0;
-                    token.priceChangeSteem = 0;
+                        token.highestBid = 0;
+                        token.lastPrice = 0;
+                        token.lowestAsk = 0;
+                        token.marketCap = 0;
+                        token.volume = 0;
+                        token.priceChangePercent = 0;
+                        token.priceChangeSteem = 0;
 
-                    token.metadata = tryParse(token.metadata);
+                        token.metadata = tryParse(token.metadata);
 
-                    if (!token.metadata) {
-                        token.metadata = {};
-                    }
-
-                    Object.keys(token.metadata).forEach(key => token.metadata[key] = filterXSS(token.metadata[key]));
-
-                    if (!metrics) {
-                        return;
-                    }
-
-                    var metric = metrics.find(m => token.symbol == m.symbol);
-
-                    if (metric) {
-                        token.highestBid = parseFloat(metric.highestBid);
-                        token.lastPrice = parseFloat(metric.lastPrice);
-                        token.lowestAsk = parseFloat(metric.lowestAsk);
-                        token.marketCap = token.lastPrice * token.circulatingSupply;
-
-                        if (Date.now() / 1000 < metric.volumeExpiration)
-                            token.volume = parseFloat(metric.volume);
-
-                        if (Date.now() / 1000 < metric.lastDayPriceExpiration) {
-                            token.priceChangePercent = parseFloat(metric.priceChangePercent);
-                            token.priceChangeSteem = parseFloat(metric.priceChangeSteem);
+                        if (!token.metadata) {
+                            token.metadata = {};
                         }
 
-                        if (token.symbol == 'AFIT') {
-                            var afit_data = await ssc.find('market', 'tradesHistory', { symbol: 'AFIT' }, 100, 0, [{ index: '_id', descending: false }], false);
-                            token.volume = afit_data.reduce((t, v) => t += parseFloat(v.price) * parseFloat(v.quantity), 0);
+                        Object.keys(token.metadata).forEach(key => token.metadata[key] = filterXSS(token.metadata[key]));
+
+                        if (!metrics) {
+                            return;
                         }
+
+                        var metric = metrics.find(m => token.symbol == m.symbol);
+
+                        if (metric) {
+                            token.highestBid = parseFloat(metric.highestBid);
+                            token.lastPrice = parseFloat(metric.lastPrice);
+                            token.lowestAsk = parseFloat(metric.lowestAsk);
+                            token.marketCap = token.lastPrice * token.circulatingSupply;
+
+                            if (Date.now() / 1000 < metric.volumeExpiration)
+                                token.volume = parseFloat(metric.volume);
+
+                            if (Date.now() / 1000 < metric.lastDayPriceExpiration) {
+                                token.priceChangePercent = parseFloat(metric.priceChangePercent);
+                                token.priceChangeSteem = parseFloat(metric.priceChangeSteem);
+                            }
+
+                            if (token.symbol == 'AFIT') {
+                                var afit_data = await ssc.find('market', 'tradesHistory', { symbol: 'AFIT' }, 100, 0, [{ index: '_id', descending: false }], false);
+                                token.volume = afit_data.reduce((t, v) => t += parseFloat(v.price) * parseFloat(v.quantity), 0);
+                            }
+                        }
+
+                        if (token.symbol == 'SWAP.HIVE')
+                            token.lastPrice = 1;
                     }
 
-                    if (token.symbol == 'SWAP.HIVE')
-                        token.lastPrice = 1;
-                }
+                    SE.Tokens.sort((a, b) => {
+                        return (b.volume > 0 ? b.volume : b.marketCap / 1000000000000) - (a.volume > 0 ? a.volume : a.marketCap / 1000000000000);
+                    });
 
-                SE.Tokens.sort((a, b) => {
-                    return (b.volume > 0 ? b.volume : b.marketCap / 1000000000000) - (a.volume > 0 ? a.volume : a.marketCap / 1000000000000);
+                    var hive_balance = await ssc.findOne('tokens', 'balances', { account: 'honey-swap', symbol: 'SWAP.HIVE' });
+
+                    if (hive_balance && hive_balance.balance) {
+                        var token = SE.GetToken('SWAP.HIVE');
+                        token.supply -= parseFloat(hive_balance.balance);
+                        token.circulatingSupply -= parseFloat(hive_balance.balance);
+                    }
+
+                    if (callback)
+                        callback(SE.Tokens);
                 });
-
-                var hive_balance = await ssc.findOne('tokens', 'balances', { account: 'honey-swap', symbol: 'SWAP.HIVE' });
-
-                if (hive_balance && hive_balance.balance) {
-                    var token = SE.GetToken('SWAP.HIVE');
-                    token.supply -= parseFloat(hive_balance.balance);
-                    token.circulatingSupply -= parseFloat(hive_balance.balance);
-                }
-
-                if (callback)
-                    callback(SE.Tokens);
-            });
+            }
         });
     },
 
@@ -1224,6 +1226,7 @@ SE = {
         $(".explorer-link").attr("href", explorerLink + `@${username}`);
         $("#ddlLoggedIn").show();
         $('#nav_wallet').show();
+        $('#nav_swap').show();
 
         // Load the steem account info
         hive.api.getAccounts([username], (e, r) => {
