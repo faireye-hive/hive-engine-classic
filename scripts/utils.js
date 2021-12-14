@@ -73,12 +73,27 @@ function addCommas(nStr, currency) {
 }
 
 function loadSteemPrice(callback) {
-    $.get('https://api.coingecko.com/api/v3/simple/price?ids=HIVE&vs_currencies=USD', function (data) {
-        window.steem_price = parseFloat(data.hive.usd);
+    if ($.cookie("steem_price")) {        
+        window.steem_price = $.cookie("steem_price");
 
         if (callback)
             callback(window.steem_price);
-    });
+    } else {
+        //console.log("no cookie");
+        $.get('https://api.coingecko.com/api/v3/simple/price?ids=HIVE&vs_currencies=USD', function (data) {
+            window.steem_price = parseFloat(data.hive.usd);
+
+            var date = new Date();
+            var minutes = 10;
+            date.setTime(date.getTime() + (minutes * 60 * 1000));
+            $.cookie("steem_price", window.steem_price, { expires: date });
+
+            if (callback)
+                callback(window.steem_price);
+        }).fail(function () {
+            console.log('error');
+        });;
+    }
 }
 
 function usdFormat(val, decimal_limit) {
