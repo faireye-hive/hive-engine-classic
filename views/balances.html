@@ -53,10 +53,17 @@
 	function SymbolColumn(value, options, rowdata) { 
 		const token = SE.GetToken(value);
 
-		if(token && token.metadata && token.metadata.icon)
-			return '<img class="icon" src="' + token.metadata.icon + '"/>';
-		else
-			return ''; 
+		if (token && token.metadata && token.metadata.icon) {
+			var patt = /<img[^>]*src=["']([^"']*)["']/g;
+			var tokenImg = token.metadata.icon;
+			while (match = patt.exec(token.metadata.icon)) {
+				tokenImg = match[1];
+			}
+			return '<img class="icon" src="' + tokenImg + '"/>';
+		}
+		else {
+			return '';
+		}
 	}
 
 	function BalanceColumn(value, options, rowdata) { return addCommas(value); }
