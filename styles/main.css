@@ -568,6 +568,7 @@ table.tokensTable {
 
 .tokensTable .icons {
 	font-size: 150%;
+	text-align: left;
 }
 
 .tokensTable .icons .fas {

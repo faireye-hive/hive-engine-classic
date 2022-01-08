@@ -20,6 +20,10 @@
   <table id="balances_table" class="tokensTable <%= data.account == SE.User.name ? 'interactiveTable' : '' %>" data-sorting="true"></table>
 </div>
 
+<div id="toast_container" style="position: fixed; top: 70px; right: 20px; z-index: 7000;">
+	
+</div>
+
 <script>
 	
 	function IconColumn(value, options, rowdata) { 

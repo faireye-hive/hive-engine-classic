@@ -1,0 +1,223 @@
+﻿
+<div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content blue">
+        <div class="modal-header" style="padding: 40px 40px 10px 60px;">
+            <h1 class="modal-title" style="font-size: 38px;">
+                DEPOSIT <span id="tokenName">POLYERC20</span>
+                <div class="note">There is a 1% fee on deposits and withdrawals.<br />Polygon deposits have no deposit fees.</div>
+            </h1>
+
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">X</span>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="note" style="text-align: left; margin-bottom: 20px;">
+
+            </div>
+
+            <label>Your MATIC Address</label>
+            <div class="input-group justify-content-center align-items-center" id="ethAddrDiv">
+                <input type="text" id="deposit_eth_address" value="<%= data && data.polygonAddress ? data.polygonAddress : '' %>" />                
+                <div class="invalid-tooltip">
+                    Please enter an MATIC address
+                </div>
+            </div>
+
+
+            <label class="mb-0">Current MATIC Balance</label>
+            <p class="mb-4" id="eth_balance">
+                <%= data && data.balance ? data.balance : 0 %>
+            </p>
+
+            <label>POLYERC20 Token </label>
+            <div class="input-group" id="erc20AddrDiv">
+                <select name="erc20Token" id="erc20Token"></select>
+            </div>
+            <br />
+            <label class="mb-0">Current POLYERC20 Balance</label>
+            <p class="mb-4" id="erc20_balance">0.00</p>
+
+            <label>DEPOSIT AMOUNT</label>
+            <div class="input-group justify-content-center align-items-center">
+                <input type="text" placeholder="0.000" id="deposit_amount">
+                <div class="input-group-append" id="erc20append">
+                    ETH
+                </div>
+                <div class="invalid-tooltip">
+                    Please enter a valid amount
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer" style="padding-bottom: 0;">
+            <button id="btnDepositEth" type="button" class="btn btn-primary btn-lg w-100" aria-label="Deposit">Deposit Now</button>
+        </div>
+
+        <div class="privex">
+            <a href="https://pay.privex.io/order/?r=steem-engine" target="_blank">
+                <img src="https://www.privex.io/static/assets/svg/privex_ctc_api_light.svg" />
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    $("#fetchEthAddr").on("click", fetchPolygonAddr);
+    $("#addUpdateEthAddr").on("click", addUpdatePolygonAddr);
+    $("#ethAddrDiv .invalid-tooltip").on("click", function () { $('#deposit_eth_address').removeClass("is-invalid"); });
+    $("#btnDepositEth").on("click", depositPolygon);
+    $("#erc20Token").on("change", erc20TokenSelected);
+
+    $(document).ready(function () {
+        SE.fetchSupportedPOLYERC20s(true, false, (err, result) => {                 
+            $("#erc20Token").find("option").remove();
+
+            $("#erc20Token").append('<option value="">Please select a token</option>');
+            for (let i = 0; i < result.length; i++) {
+                $("#erc20Token").append('<option value="' + result[i].symbol + '">' + result[i].symbol + '</option>');
+            }
+        });
+
+    })
+
+    function fetchPolygonAddr() {
+        SE.ShowLoading();
+        SE.fetchPolygonAddr((err, result) => {
+            processFetchPolygon(err, result);
+        });
+    }
+
+    
+
+    async function processFetchPolygon(err, result) {
+        if (result && result.status == "success" && result.data.polygonAddress) {
+            if (result.data.polygonAddress.length === 42) {
+                let wei = await window.ethereum.request({ method: 'eth_getBalance', params: [result.data.polygonAddress] });
+                
+                let legacyWeb3 = new Web3(window.web3.currentProvider);
+                result.balance = legacyWeb3.utils.fromWei(wei);
+                $("#eth_balance").text(result.balance);
+
+                $('#deposit_eth_address').removeClass("is-invalid");
+            }
+        }
+
+        if ((!result && err) || result.data.polygonAddress == '') {
+            $('#deposit_eth_address').addClass("is-invalid");
+        }        
+
+        SE.HideLoading();
+    }
+
+    async function erc20TokenSelected() {
+        let symbol = $("#erc20Token").val();
+        let addr = $('#deposit_eth_address').val();
+        let contract = SE.POLYERC20Tokens.find(t => t.symbol === symbol).contract_address;
+        console.log(contract);
+        const balance = await SE.getERC20Balance(contract, addr); 
+        $("#erc20_balance").text(balance);
+        $("#erc20append").text(symbol);
+    }
+
+    function addUpdatePolygonAddr() {
+        let addr = $('#deposit_eth_address').val();
+        if (addr == "") {
+            $('#deposit_eth_address').addClass("is-invalid");
+        } else {
+            //SE.ShowLoading();
+            SE.addUpdatePolygonAddress(addr.toLowerCase(), (err, result) => {
+                
+            });
+        }        
+    }
+
+    async function sleep(msec) {
+        return new Promise(resolve => setTimeout(resolve, msec));
+    }
+
+    async function depositPolygon() {
+        SE.ShowLoading();
+        let amount = $("#deposit_amount").val();
+        let addr = $('#deposit_eth_address').val();
+        let balance = $("#erc20_balance").text();
+        let symbol = $("#erc20Token").val();
+        
+        if (isNaN(amount) || amount == 0 || amount < 0.001) {
+            $('#deposit_amount').addClass("is-invalid");
+            SE.HideLoading();
+        } else if (addr == "") {
+            $('#deposit_eth_address').addClass("is-invalid");
+            SE.HideLoading();
+        } else {
+            let knownAddr = "";
+            knownAddr = await new Promise((resolve, reject) => {
+                SE.fetchPolygonAddress((err, result) => {                    
+                    if (result && result.status == "success") {
+                        resolve(result.data.polygonAddress);
+                    } else {
+                        resolve("");
+                    }
+                });
+            });
+
+            if (addr.toLowerCase() != knownAddr) {
+                let addUpdateRes = await new Promise((resolve, reject) => {
+                    SE.addUpdatePolygonAddress(addr.toLowerCase(), (err, result) => {
+                        resolve(result);
+                    });
+                });
+                console.log(addUpdateRes);
+
+                if (addUpdateRes) {
+                    SE.ShowToast(true, 'Your Polygon address needs to be verified. Please wait.');
+                    let maxTries = 20;
+                    let currentIteration = 0;
+                    let storedAddress = "";
+                    while (addr.toLowerCase() != storedAddress && currentIteration < maxTries) {
+                        storedAddress = await new Promise((resolve, reject) => {
+                            SE.fetchPolygonAddress((err, result) => {
+                                if (result && result.status == "success") {
+                                    resolve(result.data.polygonAddress);
+                                } else {
+                                    resolve("");
+                                }
+                            });
+                        });
+                        if (currentIteration == 3) {
+                            SE.ShowToast(true, 'Please wait until your Polygon address is processed successfully.');
+                        }
+
+                        console.log("Stored address: " + storedAddress);
+                        if (currentIteration == 7) {
+                            SE.ShowToast(true, 'Verifying your ETH address. Please wait.');
+                        }
+
+                        if (addr.toLowerCase() != storedAddress)
+                            await sleep(5000);
+
+                        currentIteration++;
+                    }
+
+                    if (addr.toLowerCase() == storedAddress) {
+                        SE.depositPOLYERC20(addr.toLowerCase(), amount, symbol);
+                        SE.HideLoading();
+                    } else {
+                        SE.ShowToast(false, 'Error occured while trying to deposit to your polygon address.');
+                        SE.HideLoading();
+                    }
+                } else {
+                    SE.HideLoading();
+                }
+            } else if (addr.toLowerCase() == knownAddr) {
+                SE.depositPOLYERC20(addr.toLowerCase(), amount, symbol);
+                SE.HideLoading();
+            } else {
+                SE.ShowToast(false, 'Error occured while matching your eth address.');
+                SE.HideLoading();
+            }            
+        }
+    }
+</script>
+

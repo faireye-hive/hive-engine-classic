@@ -11,6 +11,8 @@ Config = {
     ETH_CHAIN_ID: 1,
     BSC_BRIDGE_API: 'https://bscgw.hive-engine.com/api',
     BSC_CHAIN_ID: 56,
+    POLY_BRIDGE_API: 'https://polygw.hive-engine.com/api',
+    POLY_CHAIN_ID: 137,
     SETTINGS_API: 'https://tribaldex.com/api',
     NATIVE_TOKEN: 'BEE',
     STEEMP_ACCOUNT: 'honey-swap',
@@ -71,6 +73,16 @@ Config = {
             name: 'ERC20 Tokens',
             symbol: 'ERC20',
             pegged_token_symbol: 'SWAP.ERC20'
+        },
+        {
+            name: 'Polygon',
+            symbol: 'MATIC',
+            pegged_token_symbol: 'SWAP.MATIC'
+        },
+        {
+            name: 'Polygon ERC20 Tokens',
+            symbol: 'POLYERC20',
+            pegged_token_symbol: 'SWAP.POLYERC20'
         },
         {
             name: 'EOS',

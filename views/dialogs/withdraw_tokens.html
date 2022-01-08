@@ -3,7 +3,7 @@
         <div class="modal-header" style="padding: 40px 40px 10px 60px;">
             <h1 class="modal-title" style="font-size: 35px;">
                 WITHDRAW TOKENS
-                <div class="note">There is a 1% fee on deposits and withdrawals.<br />For Ethereum, ERC20, BNB or BEP20 withdrawals you will pay for the network gas fee.</div>
+                <div class="note">There is a 1% fee on deposits and withdrawals.<br />For Ethereum, ERC20, Polygon, POLY-ERC20, BNB or BEP20 withdrawals you will pay for the network gas fee.</div>
             </h1>
 
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -23,9 +23,12 @@
             <label>TOKEN TO WITHDRAW</label>
             <div class="input-group mb-4">
                 <select id="withdrawal_token">
-                    <% Config.PEGGED_TOKENS.forEach(token => { %>
+                    <% Config.PEGGED_TOKENS.sort((a, b) => a.name < b.name ? -1 : 1).forEach(token => { %>
+                    <% if (token.symbol == 'HIVE') { %>
+                    <option value="<%= token.symbol %>" selected><%= token.name %> (<%= token.symbol %>)</option>
+                    <% } else { %>
                     <option value="<%= token.symbol %>"><%= token.name %> (<%= token.symbol %>)</option>
-                    <% }); %>
+                    <% }}); %>
                 </select>
             </div>
             <div id="withdraw_body">
@@ -54,6 +57,16 @@
                     <br />
                     <label class="mb-0">Current <span id="peggedTokenSymbol">BEP20</span> Balance</label>
                     <p class="mb-4" id="bep20_balance">0.00</p>
+                </div>
+
+                <div id="polyerc20div" style="display: none;">
+                    <label>POLY-ERC20 Token </label>
+                    <div class="input-group" id="polyerc20AddrDiv">
+                        <select name="polyerc20Token" id="polyerc20Token"></select>
+                    </div>
+                    <br />
+                    <label class="mb-0">Current <span id="peggedTokenSymbol">POLY-ERC20</span> Balance</label>
+                    <p class="mb-4" id="polyerc20_balance">0.00</p>
                 </div>
 
                 <label>WITHDRAW AMOUNT</label>
@@ -127,6 +140,28 @@
                     <div class="ssc-cost mb-2">Current gas fee: <span id="bnb_gas_fee">0.00</span> <span class="peggedTxTokenBsc"></span></div>
                     <!--<div class="ssc-cost mb-2">Remaining balance after withdrawal: <span id="gas_balance_after">0.00</span> <span class="peggedTxToken"></span></div>-->
                 </div>
+                <div id="polyerc20details" style="display: none;">
+                    <br />
+                    <div class="ssc-cost mb-2">
+                        Your gas fee balance: <span id="gas_balance_polygon">0.00</span> <span class="peggedTxTokenPolygon"></span>
+                        <button id="showDepositGasPolygon" class="btn btn-primary">+</button>
+                        <button id="refreshGasFeeBalancePolygon" class="btn btn-info"><i class="fas fa-sync"></i></button>
+                        <div id="depositGasDivPolygon" style="display: none;">
+                            <div class="input-group">
+                                <input type="text" id="deposit_gas_amt_polygon" placeholder="0.000" />
+                                <div class="ssc-cost mb-2">Current SWAP.MATIC balance: <span id="matic_balance">0.00</span></div>
+                                <div class="ssc-cost" style="text-align: left;">In order to withdraw POLY-ERC20 tokens, you must provide enough SWAP.MATIC to cover the Polygon gas fee. This reserved fee balance is non-refundable.</div>
+                                <div class="ssc-cost" style="text-align: left;">Fee deposits can take up to 5 minutes to reflect in balance.</div>
+                                <button id="deposit_gas_polygon" class="btn btn-primary">Deposit</button>
+                                <div class="invalid-tooltip" id="invalid-tooltip-gas">
+                                    Please enter an amount greater than 0 and not more than your current balance.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ssc-cost mb-2">Current gas fee: <span id="matic_gas_fee">0.00</span> <span class="peggedTxTokenPolygon"></span></div>
+                    <!--<div class="ssc-cost mb-2">Remaining balance after withdrawal: <span id="gas_balance_after">0.00</span> <span class="peggedTxToken"></span></div>-->
+                </div>
             </div>
             <div id="withdraw_warning" class="alert alert-warning" style="display: none;"></div>
         </div>
@@ -145,8 +180,9 @@
 <script>
     $("#erc20Token").on("change", erc20TokenSelected);
     $("#bep20Token").on("change", bep20TokenSelected);
+    $("#polyerc20Token").on("change", polyerc20TokenSelected);
 
-    if (!SE.Settings.eth_bridge || !SE.Settings.bsc_bridge)
+    if (!SE.Settings.eth_bridge || !SE.Settings.bsc_bridge || !SE.Settings.polygon_bridge)
         SE.fetchSettings();
 
     $(document).ready(function () {
@@ -213,6 +249,41 @@
                 $("#gas_balance_bsc").text(result);
             });
         })
+
+        /* POLYGON */
+        SE.fetchSupportedPOLYERC20s(true, false, (err, result) => {
+            $("#polyerc20Token").find("option").remove();
+
+            $("#polyerc20Token").append('<option value="">Please select a token</option>');
+            for (let i = 0; i < result.length; i++) {
+                $("#polyerc20Token").append('<option value="' + result[i].symbol + '">' + result[i].symbol + '</option>');
+            }
+        });
+
+        $("#showDepositGasPolygon").click(function () {
+            $("#depositGasDivPolygon").show();
+        });
+
+        $("#deposit_gas_polygon").click(function () {
+            let amount = $("#deposit_gas_amt_polygon").val();
+            let matic_balance = SE.GetBalance(SE.Settings.polygon_bridge.matic.pegged_token_symbol);
+            console.log(amount);
+            console.log(matic_balance);
+            if (isNaN(amount) || amount <= 0 || amount > matic_balance) {
+                $('#deposit_gas_amt_polygon').addClass("is-invalid");
+            } else {
+                SE.DepositGasPolygon(amount);
+            }
+        });
+
+        $("#refreshGasFeeBalancePolygon").click(async function () {
+            SE.ShowLoading();
+            SE.fetchFeeBalancePolygon((err, result) => {
+                SE.ShowToast(true, 'Balance retrieved: ' + result);
+                SE.HideLoading();
+                $("#gas_balance_polygon").text(result);
+            });
+        })
     });
 
     async function onWithdrawClick() {
@@ -224,7 +295,7 @@
         var min_withdraw = SE.Settings.minimum_withdrawals.find(x => x[0] == token.pegged_token_symbol);
         var amount = parseFloat($('#withdraw_amount').val());
 
-        if (isNaN(amount) || amount <= 0 || (token.symbol != 'ERC20' && token.symbol != 'BEP20' && amount > SE.GetBalance(token.pegged_token_symbol))) {
+        if (isNaN(amount) || amount <= 0 || (token.symbol != 'ERC20' && token.symbol != 'BEP20' && token.symbol != 'POLYERC20' && amount > SE.GetBalance(token.pegged_token_symbol))) {
             $('#withdraw_amount').addClass("is-invalid");
         } else {
             if (min_withdraw && min_withdraw[1] && amount < min_withdraw[1]) {
@@ -304,6 +375,39 @@
                                 }
                             }
 
+                        } else if (token.symbol == SE.Settings.polygon_bridge.matic.pegged_token_symbol.replace('SWAP.', '') || token.symbol == 'POLYERC20') {
+                            if ($('#receive_amt').text() < 0) {
+                                $('#withdraw_amount').addClass("is-invalid");
+                            } else {
+                                if (token.symbol == 'POLYERC20') {
+                                    let gasBalance = SE.MaticFeeBalance;
+                                    let gasFee = SE.MaticWithdrawalFee;
+                                    let remaining = gasBalance - gasFee;
+
+                                    if (remaining > 0) {
+                                        let polyerc20Token = $("#polyerc20Token").val();
+                                        let peggedSymbol = SE.POLYERC20Tokens.find(t => t.symbol === polyerc20Token).pegged_token_symbol;
+
+                                        // check amount
+                                        if (amount > SE.GetBalance(peggedSymbol)) {
+                                            $('#withdraw_amount').addClass("is-invalid");
+                                        } else {
+                                            SE.WithdrawPolygon(peggedSymbol, $('#withdraw_amount').val(), $('#withdraw_address').val(), (err, result) => {
+                                                console.log(result);
+                                            });
+                                        }
+                                    } else {
+                                        $('#withdraw_address').addClass("is-invalid");
+                                        $('#error_response').text('Insufficient gas fee balance!');
+                                    }
+
+                                } else {
+                                    SE.WithdrawPolygon(SE.Settings.polygon_bridge.matic.pegged_token_symbol, $('#withdraw_amount').val(), $('#withdraw_address').val(), (err, result) => {
+                                        console.log(result);
+                                    });
+                                }
+                            }
+
                         } else {
                             SE.GetWithdrawalAddress(token.symbol, $('#withdraw_address').val(), $("#memo").val(), (err, result) => {
                                 if (err) {
@@ -358,6 +462,14 @@
                 $('#withdraw_address').addClass("is-invalid");
                 $('#error_response').text('Insufficient gas fee balance!');
             }
+        } else if (amt > 0 && tokenWith === SE.Settings.polygon_bridge.matic.pegged_token_symbol.replace('SWAP.', '')) {
+            recvAmt = ((amt * 0.99) - SE.MaticWithdrawalFee).toFixed(8);
+
+            if (recvAmt < 0) {
+                recvAmt = " invalid";
+                $('#withdraw_address').addClass("is-invalid");
+                $('#error_response').text('Insufficient gas fee balance!');
+            }
         }
 
         if (tokenWith == 'ERC20') {
@@ -380,6 +492,16 @@
             } else {
                 $('#withdraw_amount').removeClass("is-invalid");
             }
+        } else if (tokenWith == 'POLYERC20') {
+            let polyerc20Token = $("#polyerc20Token").val();
+            let peggedSymbol = SE.POLYERC20Tokens.find(t => t.symbol === polyerc20Token).pegged_token_symbol;
+            let polyerc20Balance = SE.GetBalance(peggedSymbol);
+            if (amt > polyerc20Balance) {
+                recvAmt = " invalid";
+                $('#withdraw_amount').addClass("is-invalid");
+            } else {
+                $('#withdraw_amount').removeClass("is-invalid");
+            }
         }
 
         $('#receive_amt').text(recvAmt);
@@ -388,7 +510,7 @@
     $('#withdrawal_token').change(updateToken);
 
     function updateToken() {
-        if (!SE.Settings.eth_bridge || !SE.Settings.bsc_bridge)
+        if (!SE.Settings.eth_bridge || !SE.Settings.bsc_bridge || !SE.Settings.polygon_bridge)
             SE.fetchSettings();
 
         $('#withdraw_amount').removeClass("is-invalid");
@@ -439,6 +561,10 @@
             SE.getBnbWithdrawalFee((err, result) => {
                 SE.BnbWithdrawalFee = Number(result.data);
             });
+        } else if (token.symbol == SE.Settings.polygon_bridge.matic.pegged_token_symbol.replace('SWAP.', '') || token.symbol == 'POLYERC20') {
+            SE.getMaticWithdrawalFee((err, result) => {
+                SE.MaticWithdrawalFee = Number(result.data);
+            });
         }
 
         if (token.symbol == 'ETH' || token.symbol == 'ERC20' || token.symbol == 'BNB' || token.symbol == 'BEP20') {
@@ -453,18 +579,32 @@
             $("#erc20div").show();
             $("#erc20details").show();
             $("#nonErc20Balance").hide();
+            $("#polyerc20div").hide();
+            $("#polyerc20details").hide();
         } else if (token.symbol == 'BEP20') {
             $("#bep20div").show();
             $("#bep20details").show();
             $("#erc20div").hide();
             $("#erc20details").hide();
             $("#nonErc20Balance").hide();
+            $("#polyerc20div").hide();
+            $("#polyerc20details").hide();
+        } else if (token.symbol == 'POLYERC20') {
+            $("#bep20div").hide();
+            $("#bep20details").hide();
+            $("#erc20div").hide();
+            $("#erc20details").hide();
+            $("#nonErc20Balance").hide();
+            $("#polyerc20div").show();
+            $("#polyerc20details").show();
         } else {
             $("#bep20div").hide();
             $("#bep20details").hide();
             $("#erc20div").hide();
             $("#erc20details").hide();
             $("#nonErc20Balance").show();
+            $("#polyerc20div").hide();
+            $("#polyerc20details").hide();
         }
     }
 
@@ -521,6 +661,32 @@
             $("#withAppend").text(peggedSymbol);
             $('.ts').text(symbol);
             $(".peggedTxTokenBsc").text(SE.Settings.bsc_bridge.bnb.pegged_token_symbol);
+        });
+
+
+    }
+
+    async function polyerc20TokenSelected() {
+        let symbol = $("#polyerc20Token").val();
+
+        let peggedSymbol = SE.POLYERC20Tokens.find(t => t.symbol === symbol).pegged_token_symbol;
+        $("#peggedTokenSymbol").text(peggedSymbol);
+        $('#polyerc20_balance').text(SE.GetBalance(peggedSymbol));
+
+        let matic_balance = SE.GetBalance(SE.Settings.polygon_bridge.matic.pegged_token_symbol);
+        let gasBalance = 0;
+        SE.fetchFeeBalancePolygon((err, result) => {
+            gasBalance = result;
+            let gasFee = SE.MaticWithdrawalFee;
+            //let remaining = gasBalance - gasFee;
+            $("#gas_balance_polygon").text(gasBalance);
+            $("#matic_gas_fee").text(gasFee);
+            //$("#gas_balance_after").text(remaining);
+            $("#matic_balance").text(matic_balance);
+            //$("#erc20_balance").text(balance);
+            $("#withAppend").text(peggedSymbol);
+            $('.ts').text(symbol);
+            $(".peggedTxTokenPolygon").text(SE.Settings.polygon_bridge.matic.pegged_token_symbol);
         });
 
 

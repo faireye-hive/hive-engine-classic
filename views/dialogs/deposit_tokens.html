@@ -3,8 +3,10 @@
         <div class="modal-header" style="padding: 40px 40px 10px 60px;">
             <h1 class="modal-title" style="font-size: 38px;">
                 DEPOSIT TOKENS
-                <div class="note">There is a 1% fee on deposits and withdrawals.<br />Ethereum and Binance Smart Chain
-                    deposits have no deposit fees.</div>
+                <div class="note">
+                    There is a 1% fee on deposits and withdrawals.<br />Ethereum, Binance Smart Chain and Polygon
+                    deposits have no deposit fees.
+                </div>
             </h1>
 
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -29,19 +31,26 @@
             <label>DEPOSIT TOKEN</label>
             <div class="input-group">
                 <select id="deposit_token">
-                    <% Config.PEGGED_TOKENS.forEach(token=> { %>
-                        <option value="<%= token.symbol %>">
-                            <%= token.name %> (<%= token.symbol %>)
-                        </option>
-                        <% }); %>
+                    <% Config.PEGGED_TOKENS.sort((a, b) => a.name < b.name ? -1 : 1).forEach(token=> { %>
+                    <% if (token.symbol == 'HIVE') { %>
+                    <option value="<%= token.symbol %>" selected>
+                        <%= token.name %> (<%= token.symbol %>)
+                    </option>
+                    <% } else { %>
+                    <option value="<%= token.symbol %>">
+                        <%= token.name %> (<%= token.symbol %>)
+                    </option>
+                    <% }}); %>
                 </select>
             </div>
             <div id="deposit_warning" class="alert alert-warning" style="display: none; margin-top: 10px;"></div>
         </div>
 
         <div class="modal-footer" style="padding-bottom: 0;">
-            <button id="btnBuy" type="button" class="btn btn-primary btn-lg w-100" onclick="getDepositInfoClick()">GET
-                DEPOSIT INFO</button>
+            <button id="btnBuy" type="button" class="btn btn-primary btn-lg w-100" onclick="getDepositInfoClick()">
+                GET
+                DEPOSIT INFO
+            </button>
         </div>
 
         <div class="privex">
@@ -124,6 +133,28 @@
                     });
                 }
             }
+        } else if (selectedTokenVal === 'MATIC' || selectedTokenVal == 'POLYERC20') {
+            if (window.ethereum && window.Web3) {
+                SE.web3 = new window.Web3(window.ethereum);
+                const chainId = await window.ethereum.request({ method: 'net_version' })
+
+                if (Number(chainId) !== Config.POLY_CHAIN_ID) {
+                    console.log('warning');
+                    SE.ShowToast(false, `Please make sure Metamask network is set to the correct chain (POLYGON).`);
+                    SE.HideLoading();
+                } else {
+                    try {
+                        await window.ethereum.request({ method: 'eth_requestAccounts' })
+                    } catch (e) {
+                        console.log(e)
+                    }
+
+                    SE.fetchPolygonAddress((err, result) => {
+                        showPolygonDeposit(err, result, selectedTokenVal);
+                    });
+                }
+            }
+
         } else {
 
             SE.GetDepositAddress($('#deposit_token').val(), result => {
@@ -161,6 +192,27 @@
             SE.ShowDialog('deposit_eth', model);
         else if (selectedTokenVal == 'ERC20')
             SE.ShowDialog('deposit_erc20', model);
+
+        SE.HideLoading();
+    }
+
+    async function showPolygonDeposit(err, result, selectedTokenVal) {
+        let model = { balance: 0, polygonAddress: "" };
+        if (result && result.status == "success" && result.data.polygonAddress) {
+            model.polygonAddress = result.data.polygonAddress;
+
+            if (result.data.polygonAddress.length === 42) {
+                let wei = await window.ethereum.request({ method: 'eth_getBalance', params: [model.polygonAddress] });
+                //await SE.Web3.eth.getBalance(result.data.ethereumAddress);
+                let legacyWeb3 = new Web3(window.web3.currentProvider);
+                model.balance = legacyWeb3.utils.fromWei(wei);
+            }
+        }
+        console.log(model);
+        if (selectedTokenVal == 'MATIC')
+            SE.ShowDialog('deposit_polygon', model);
+        else if (selectedTokenVal == 'POLYERC20')
+            SE.ShowDialog('deposit_polygon_erc20', model);
 
         SE.HideLoading();
     }

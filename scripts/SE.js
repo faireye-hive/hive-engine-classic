@@ -7,6 +7,7 @@ SE = {
     web3: {},
     EthWithdrawalFee: 0,
     BnbWithdrawalFee: 0,
+    MaticWithdrawalFee: 0,
     ABI: [{
         constant: true,
         inputs: [{ name: '_owner', type: 'address' }],
@@ -29,8 +30,10 @@ SE = {
     }],
     ERC20Tokens: [],
     BEP20Tokens: [],
+    POLYERC20Tokens: [],
     EthFeeBalance: 0,
     BnbFeeBalance: 0,
+    MaticFeeBalance: 0,
 
     Api: function(url, data, callback, always) {
         if (data == null || data == undefined) data = {};
@@ -177,8 +180,8 @@ SE = {
         SE._loading.remove();
     },
 
-    ShowToast: function(isSuccess, message) {
-        var toast = $(renderComponent("toast", { isSuccess: isSuccess, message: message }));
+    ShowToast: function(isSuccess, message) {        
+        var toast = $(renderComponent("toast", { isSuccess: isSuccess, message: message }));        
         $('#toast_container').append(toast);
         toast.toast('show');
     },
@@ -2617,5 +2620,250 @@ SE = {
                 callback(xhr);
             }
         });
-    }
+    },
+    fetchPolygonAddress: function (callback) {
+        try {
+            if (!this.Settings || !this.Settings.polygon_bridge)
+                this.fetchSettings();
+
+            var pegged_token = Config.PEGGED_TOKENS.find(p => p.symbol == 'MATIC');
+
+            if (!pegged_token)
+                return;
+            let username = SE.User.name;
+            $.ajax({
+                url: Config.POLY_BRIDGE_API + '/utils/polygonaddress/' + username,
+                type: 'GET',
+                contentType: "application/json",
+                dataType: "json",
+                success: result => {
+                    if (callback)
+                        callback(null, result);
+                },
+                error: (xhr, status, errorThrown) => {
+                    if (callback) {
+                        callback(xhr, null);
+                    }
+                }
+            });
+        } catch (e) {
+            console.log(e.message)
+        }
+    },
+    addUpdatePolygonAddress: async function (polygonAddress, callback) {
+        if (!this.Settings || !this.Settings.polygon_bridge)
+            this.fetchSettings();
+
+        let isValidEthAddr = SE.web3.utils.isAddress(polygonAddress);
+        if (isValidEthAddr) {
+            try {
+                let accountFound = false;
+
+                const accounts = await ethereum.request({ method: 'eth_accounts' });
+                accountFound = accounts.find(x => x === polygonAddress);
+
+                if (!accountFound) {
+                    try {
+                        SE.requestPermissionsWallet(polygonAddress, callback, 'eth');
+                    } catch (e) {
+                        console.log(e)
+                    }
+                }
+
+                if (accountFound) {
+                    SE.addUpdatePolygonAddressTx(polygonAddress, callback);
+                }
+
+            } catch (e) {
+                console.log(e.message);
+                SE.HideLoading();
+            }
+        } else {
+            SE.ShowToast(false, 'Invalid ETH address');
+            SE.HideLoading();
+        }
+    },
+    addUpdatePolygonAddressTx: async function (polygonAddress, callback) {
+        try {
+            let web3 = new Web3(Web3.givenProvider || "ws://localhost:8545");
+            web3.eth.defaultAccount = polygonAddress;
+            data = SE.web3.utils.fromUtf8(SE.User.name);
+            let ethSig = await window.ethereum.request({
+                method: 'personal_sign',
+                params: [data, polygonAddress]
+            });
+
+            const memo = JSON.stringify({
+                id: this.Settings.polygon_bridge.id,
+                json: {
+                    polygonAddress: polygonAddress,
+                    signature: ethSig
+                }
+            })
+
+            hive_keychain.requestTransfer(SE.User.name, this.Settings.polygon_bridge.account, 0.001, memo, 'HIVE', function (response) {
+                console.log(response);
+                if (response.success && response.result) {
+                    SE.ShowToast(true, 'Transaction sent successfully.');
+                    if (callback)
+                        callback(null, true);
+                } else {
+                    SE.ShowToast(false, 'An error occurred while updating Polygon address');
+                    if (callback)
+                        callback(response, null);
+                }
+            });
+        } catch (e) {
+            SE.ShowToast(false, e.message);
+            SE.HideLoading();
+        }
+    },
+    depositPolygon: async function (polygonAddress, maticAmount) {
+        if (!this.Settings || !this.Settings.eth_bridge)
+            this.fetchSettings();
+
+        try {
+            let depositAddress = this.Settings.polygon_bridge.gateway_address.toLowerCase();
+            let maticVal = SE.web3.utils.toHex(SE.web3.utils.toWei(maticAmount.toString(), 'ether'));
+
+            const accounts = await ethereum.request({ method: 'eth_accounts' });
+            let accountFound = accounts.find(x => x === polygonAddress);
+
+            if (!accountFound) {
+                SE.ShowToast(false, 'Please make sure you have selected the correct address on your MetaMask before proceeding');
+                return;
+            }
+
+            const transactionHash = await ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [
+                    {
+                        from: polygonAddress,
+                        to: depositAddress,
+                        value: maticVal
+                    },
+                ],
+            });
+
+            console.log(transactionHash);
+            SE.ShowToast(true, 'Deposit initiated.');
+        } catch (e) {
+            console.log(e.message)
+        }
+    },
+    fetchSupportedPOLYERC20s: function (deposit, withdrawal, callback) {
+        try {
+            $.ajax({
+                url: Config.POLY_BRIDGE_API + '/utils/tokens/erc20',
+                type: 'GET',
+                contentType: "application/json",
+                dataType: "json",
+                success: result => {
+                    console.log(result);
+                    const tokens = result.data.filter((t) => {
+                        if (typeof deposit === 'boolean') {
+                            return t.depositEnabled === deposit
+                        }
+
+                        return t.withdrawEnabled === withdrawal
+                    })
+                        .map((t) => {
+                            return {
+                                name: t.name,
+                                symbol: t.polygonSymbol,
+                                pegged_token_symbol: t.heSymbol,
+                                contract_address: t.contractAddress,
+                                he_precision: t.hePrecision,
+                                polygon_precision: t.polygonPrecision
+                            }
+                        });
+
+                    this.POLYERC20Tokens = tokens;
+
+                    if (callback)
+                        callback(null, tokens);
+                    //console.log(tokens);
+                    //return tokens;
+                },
+                error: (xhr, status, errorThrown) => {
+                    callback(xhr, null);
+                }
+            });
+        } catch (e) {
+            console.log(e.message)
+        }
+    },
+    DepositGasPolygon: async function (amount) {
+        SE.SendToken(this.Settings.polygon_bridge.matic.pegged_token_symbol, this.Settings.polygon_bridge.account, amount, 'fee');
+    },
+    getMaticWithdrawalFee: function (callback) {
+        $.ajax({
+            url: Config.POLY_BRIDGE_API + '/utils/withdrawalfee',
+            type: 'GET',
+            contentType: "application/json",
+            dataType: "json",
+            success: result => {
+                if (callback)
+                    callback(null, result);
+            },
+            error: (xhr, status, errorThrown) => {
+                callback(xhr, null);
+            }
+        });
+    },
+    WithdrawPolygon: function (symbol, amount, address, callback) {
+        SE.SendToken(symbol, this.Settings.polygon_bridge.account, amount, address);
+    },
+    fetchFeeBalancePolygon: function (callback) {
+        try {
+            $.ajax({
+                url: Config.POLY_BRIDGE_API + '/utils/feebalance/' + SE.User.name,
+                type: 'GET',
+                contentType: "application/json",
+                dataType: "json",
+                success: result => {
+                    SE.MaticFeeBalance = Number(result.data.balance);
+
+                    if (callback)
+                        callback(null, SE.MaticFeeBalance);
+                },
+                error: (xhr, status, errorThrown) => {
+                    console.log(xhr);
+                    //callback(xhr, null);
+                }
+            });
+        } catch (e) {
+            console.log(e)
+        }
+    },
+    depositPOLYERC20: async function (polygonAddress, maticAmount, erc20Symbol) {
+        if (!this.Settings || !this.Settings.polygon_bridge)
+            this.fetchSettings();
+
+        try {
+            const accounts = await ethereum.request({ method: 'eth_accounts' });
+            let accountFound = accounts.find(x => x === polygonAddress);
+
+            if (!accountFound) {
+                SE.ShowToast(false, 'Please make sure you have selected the correct address on your MetaMask before proceeding');
+                return;
+            }
+
+            let depositAddress = this.Settings.polygon_bridge.gateway_address;
+            this.loading = true
+
+            const symbol = SE.POLYERC20Tokens.find(t => t.symbol === erc20Symbol)
+
+            let legacyWeb3 = new Web3(window.web3.currentProvider);
+            const contract = new legacyWeb3.eth.Contract(SE.ABI, symbol.contract_address)
+
+            const value = window.Decimal(maticAmount * 10 ** symbol.polygon_precision).toFixed();
+
+            await contract.methods.transfer(depositAddress, value).send({ from: polygonAddress });
+
+            SE.ShowToast(true, 'Deposit initiated.');
+        } catch (e) {
+            console.log(e.message)
+        }
+    },
 }
