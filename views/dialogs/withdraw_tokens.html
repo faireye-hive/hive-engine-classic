@@ -3,7 +3,7 @@
         <div class="modal-header" style="padding: 40px 40px 10px 60px;">
             <h1 class="modal-title" style="font-size: 35px;">
                 WITHDRAW TOKENS
-                <div class="note">There is a 1% fee on deposits and withdrawals.<br />For Ethereum, ERC20, Polygon, POLY-ERC20, BNB or BEP20 withdrawals you will pay for the network gas fee.</div>
+                <div class="note">There is a 0.75% fee on deposits and withdrawals.<br />For Ethereum, ERC-20, BNB, BEP-20, Polygon (MATIC) and Polygon ERC-20 withdrawals fee is 1% and you will also pay for the Ethereum / BSC / Polygon network gas fee.</div>
             </h1>
 
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -16,8 +16,7 @@
 
             <p class="text-medium wekuWarning" style="display: none;">You are going to remove WEKUP from <strong>Steem-Engine</strong> and receive WEKU on <strong>Bitshares</strong>.</p>
             <p class="text-medium wekuWarning" style="display: none;">
-                Please note we own the steem-engine account on <strong>Bitshares</strong>, but not the steem-engine account on <strong>WEKU</strong>. Any and all transfers you complete to the steem-engine account on WEKU are to a known scammer and will not
-                be refunded.
+                Please note we own the steem-engine account on <strong>Bitshares</strong>, but not the steem-engine account on <strong>WEKU</strong>. Any and all transfers you complete to the steem-engine account on WEKU are to a known scammer and will not be refunded.
             </p>
 
             <label>TOKEN TO WITHDRAW</label>
@@ -445,7 +444,7 @@
         if (isNaN(amt))
             amt = 0;
 
-        let recvAmt = (amt * 0.99).toFixed(tokenWith == 'HIVE' ? 3 : 8);
+        let recvAmt = (amt * 0.9925).toFixed(tokenWith == 'HIVE' ? 3 : 8);
         if (amt > 0 && tokenWith === SE.Settings.eth_bridge.ethereum.pegged_token_symbol.replace('SWAP.', '')) {
             recvAmt = ((amt * 0.99) - SE.EthWithdrawalFee).toFixed(8);
 

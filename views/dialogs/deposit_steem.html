@@ -3,7 +3,7 @@
         <div class="modal-header" style="padding: 40px 40px 10px 60px;">
             <h1 class="modal-title" style="font-size: 38px;">
                 DEPOSIT HIVE
-                <div class="note">There is a 1% fee on deposits and withdrawals.</div>
+                <div class="note">There is a 0.75% fee on deposits and withdrawals.</div>
             </h1>
 
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -54,6 +54,6 @@
 
     $('#deposit_amount').keyup(() => {
         var amt = parseFloat($('#deposit_amount').val());
-        $('#receive_amt').text((amt * 0.99).toFixed(3));
+        $('#receive_amt').text((amt * 0.9925).toFixed(3));
     });
 </script>
