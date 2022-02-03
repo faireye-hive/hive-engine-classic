@@ -2012,9 +2012,9 @@ SE = {
         }
     },
 
-    getEthWithdrawalFee: function (callback) {
+    getEthWithdrawalFee: function (symbol, callback) {
         $.ajax({
-            url: Config.ETH_BRIDGE_API + '/utils/withdrawalfee',
+            url: Config.ETH_BRIDGE_API + '/utils/withdrawalfee/' + symbol,
             type: 'GET',
             contentType: "application/json",
             dataType: "json",
@@ -2409,9 +2409,9 @@ SE = {
     DepositGasBsc: async function (amount) {
         SE.SendToken(this.Settings.bsc_bridge.bnb.pegged_token_symbol, this.Settings.bsc_bridge.account, amount, 'fee');
     },
-    getBnbWithdrawalFee: function (callback) {
+    getBnbWithdrawalFee: function (symbol, callback) {
         $.ajax({
-            url: Config.BSC_BRIDGE_API + '/utils/withdrawalfee',
+            url: Config.BSC_BRIDGE_API + '/utils/withdrawalfee/' + symbol,
             type: 'GET',
             contentType: "application/json",
             dataType: "json",
@@ -2796,9 +2796,9 @@ SE = {
     DepositGasPolygon: async function (amount) {
         SE.SendToken(this.Settings.polygon_bridge.matic.pegged_token_symbol, this.Settings.polygon_bridge.account, amount, 'fee');
     },
-    getMaticWithdrawalFee: function (callback) {
+    getMaticWithdrawalFee: function (symbol, callback) {
         $.ajax({
-            url: Config.POLY_BRIDGE_API + '/utils/withdrawalfee',
+            url: Config.POLY_BRIDGE_API + '/utils/withdrawalfee/' + symbol,
             type: 'GET',
             contentType: "application/json",
             dataType: "json",

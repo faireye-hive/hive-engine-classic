@@ -551,19 +551,41 @@
 
         $('#withdraw_address').prop('disabled', token.symbol == 'HIVE');
         $('#withdraw_address').val((token.symbol == 'HIVE') ? SE.User.name : '');
-                
+
+        let peggedSymbol = token.symbol;
         if (token.symbol == SE.Settings.eth_bridge.ethereum.pegged_token_symbol.replace('SWAP.', '') || token.symbol == 'ERC20') {            
-            SE.getEthWithdrawalFee((err, result) => {
-                SE.EthWithdrawalFee = Number(result.data);
-            });
+            if (token.symbol == SE.Settings.eth_bridge.ethereum.pegged_token_symbol.replace('SWAP.', ''))
+                peggedSymbol = SE.Settings.eth_bridge.ethereum.pegged_token_symbol;
+            else
+                peggedSymbol = "";
+
+            if (peggedSymbol) {
+                SE.getEthWithdrawalFee(peggedSymbol, (err, result) => {
+                    SE.EthWithdrawalFee = Number(result.data);
+                });
+            }
         } else if (token.symbol == SE.Settings.bsc_bridge.bnb.pegged_token_symbol.replace('SWAP.', '') || token.symbol == 'BEP20') {
-            SE.getBnbWithdrawalFee((err, result) => {
-                SE.BnbWithdrawalFee = Number(result.data);
-            });
+            if (token.symbol == SE.Settings.bsc_bridge.bnb.pegged_token_symbol.replace('SWAP.', ''))
+                peggedSymbol = SE.Settings.bsc_bridge.bnb.pegged_token_symbol;
+            else
+                peggedSymbol = "";
+
+            if (peggedSymbol) {
+                SE.getBnbWithdrawalFee(peggedSymbol, (err, result) => {
+                    SE.BnbWithdrawalFee = Number(result.data);
+                });
+            }
         } else if (token.symbol == SE.Settings.polygon_bridge.matic.pegged_token_symbol.replace('SWAP.', '') || token.symbol == 'POLYERC20') {
-            SE.getMaticWithdrawalFee((err, result) => {
-                SE.MaticWithdrawalFee = Number(result.data);
-            });
+            if (token.symbol == SE.Settings.polygon_bridge.matic.pegged_token_symbol.replace('SWAP.', ''))
+                peggedSymbol = SE.Settings.polygon_bridge.matic.pegged_token_symbol;
+            else
+                peggedSymbol = "";
+
+            if (peggedSymbol) {
+                SE.getMaticWithdrawalFee(peggedSymbol, (err, result) => {
+                    SE.MaticWithdrawalFee = Number(result.data);
+                });
+            }
         }
 
         if (token.symbol == 'ETH' || token.symbol == 'ERC20' || token.symbol == 'BNB' || token.symbol == 'BEP20') {
@@ -623,20 +645,24 @@
         let eth_balance = SE.GetBalance(SE.Settings.eth_bridge.ethereum.pegged_token_symbol);
         let gasBalance = 0;
         SE.fetchFeeBalance((err, result) => {
-            gasBalance = result;            
-            let gasFee = SE.EthWithdrawalFee;
-            //let remaining = gasBalance - gasFee;
-            $("#gas_balance").text(gasBalance);
-            $("#eth_gas_fee").text(gasFee);
-            //$("#gas_balance_after").text(remaining);
-            $("#eth_balance").text(eth_balance);
-            //$("#erc20_balance").text(balance);
-            $("#withAppend").text(peggedSymbol);
-            $('.ts').text(symbol);
-            $(".peggedTxToken").text(SE.Settings.eth_bridge.ethereum.pegged_token_symbol);
-        }); 
+            SE.ShowLoading();
+            SE.getEthWithdrawalFee(peggedSymbol, (err, result2) => {
+                SE.EthWithdrawalFee = Number(result2.data);
+                gasBalance = result;            
+                let gasFee = SE.EthWithdrawalFee;
+                //let remaining = gasBalance - gasFee;
+                $("#gas_balance").text(gasBalance);
+                $("#eth_gas_fee").text(gasFee);
+                //$("#gas_balance_after").text(remaining);
+                $("#eth_balance").text(eth_balance);
+                //$("#erc20_balance").text(balance);
+                $("#withAppend").text(peggedSymbol);
+                $('.ts').text(symbol);
+                $(".peggedTxToken").text(SE.Settings.eth_bridge.ethereum.pegged_token_symbol);
 
-        
+                SE.HideLoading();
+            });
+        }); 
     }
 
     async function bep20TokenSelected() {
@@ -649,20 +675,28 @@
         let bnb_balance = SE.GetBalance(SE.Settings.bsc_bridge.bnb.pegged_token_symbol);
         let gasBalance = 0;
         SE.fetchFeeBalanceBsc((err, result) => {
-            gasBalance = result;
-            let gasFee = SE.BnbWithdrawalFee;
-            //let remaining = gasBalance - gasFee;
-            $("#gas_balance_bsc").text(gasBalance);
-            $("#bnb_gas_fee").text(gasFee);
-            //$("#gas_balance_after").text(remaining);
-            $("#bnb_balance").text(bnb_balance);
-            //$("#erc20_balance").text(balance);
-            $("#withAppend").text(peggedSymbol);
-            $('.ts').text(symbol);
-            $(".peggedTxTokenBsc").text(SE.Settings.bsc_bridge.bnb.pegged_token_symbol);
+            SE.ShowLoading();
+            SE.getBnbWithdrawalFee(peggedSymbol, (err, result2) => {
+                SE.BnbWithdrawalFee = Number(result2.data);
+                gasBalance = result;
+                let gasFee = SE.BnbWithdrawalFee;
+                //let remaining = gasBalance - gasFee;
+                $("#gas_balance_bsc").text(gasBalance);
+                $("#bnb_gas_fee").text(gasFee);
+                //$("#gas_balance_after").text(remaining);
+                $("#bnb_balance").text(bnb_balance);
+                //$("#erc20_balance").text(balance);
+                $("#withAppend").text(peggedSymbol);
+                $('.ts').text(symbol);
+                $(".peggedTxTokenBsc").text(SE.Settings.bsc_bridge.bnb.pegged_token_symbol);
+
+                SE.HideLoading();
+
+            });
         });
 
-
+       
+            
     }
 
     async function polyerc20TokenSelected() {
@@ -675,19 +709,25 @@
         let matic_balance = SE.GetBalance(SE.Settings.polygon_bridge.matic.pegged_token_symbol);
         let gasBalance = 0;
         SE.fetchFeeBalancePolygon((err, result) => {
-            gasBalance = result;
-            let gasFee = SE.MaticWithdrawalFee;
-            //let remaining = gasBalance - gasFee;
-            $("#gas_balance_polygon").text(gasBalance);
-            $("#matic_gas_fee").text(gasFee);
-            //$("#gas_balance_after").text(remaining);
-            $("#matic_balance").text(matic_balance);
-            //$("#erc20_balance").text(balance);
-            $("#withAppend").text(peggedSymbol);
-            $('.ts').text(symbol);
-            $(".peggedTxTokenPolygon").text(SE.Settings.polygon_bridge.matic.pegged_token_symbol);
-        });
+            SE.ShowLoading();
+            SE.getMaticWithdrawalFee(peggedSymbol, (err, result2) => {
+                SE.MaticWithdrawalFee = Number(result2.data);
+                gasBalance = result;
+                let gasFee = SE.MaticWithdrawalFee;
+                //let remaining = gasBalance - gasFee;
+                $("#gas_balance_polygon").text(gasBalance);
+                $("#matic_gas_fee").text(gasFee);
+                //$("#gas_balance_after").text(remaining);
+                $("#matic_balance").text(matic_balance);
+                //$("#erc20_balance").text(balance);
+                $("#withAppend").text(peggedSymbol);
+                $('.ts').text(symbol);
+                $(".peggedTxTokenPolygon").text(SE.Settings.polygon_bridge.matic.pegged_token_symbol);
 
+                SE.HideLoading();
+
+            });
+        });        
 
     }
 </script>
