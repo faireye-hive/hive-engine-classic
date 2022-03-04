@@ -143,6 +143,16 @@ Config = {
             name: 'WAX',
             symbol: 'WAX',
             pegged_token_symbol: 'SWAP.WAX'
+        },
+        {
+            name: 'BLURT',
+            symbol: 'BLURT',
+            pegged_token_symbol: 'SWAP.BLURT'
+        },
+        {
+            name: 'SAVVA',
+            symbol: 'SAVVA',
+            pegged_token_symbol: 'SWAP.SAVVA'
         }
     ]
 }
